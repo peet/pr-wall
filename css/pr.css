@@ -1,0 +1,101 @@
+* {
+  box-sizing: border-box;
+  font-family: "Trebuchet MS", Verdana, Geneva, Arial, Helvetica, sans-serif;
+}
+
+body {
+  background: darkslategrey;
+}
+
+.col {
+  border: 0 solid #000000;
+  border-radius: 5px;
+  color: #ffffff;
+  padding: 3px;
+  font-size: 2.5vmin;
+  margin-top: 0.5%;
+  margin-bottom: 0.5%;
+}
+
+.nowrap .col {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.block {
+  margin: 0;
+}
+
+.img-container {
+  text-align: center;
+  font-size: 2vmin;
+}
+
+.img-container img {
+  height: 8vmin;
+  width: 8vmin;
+}
+
+.when, .body {
+  text-align: center;
+}
+
+.to {
+  text-align: right;
+}
+
+.title {
+  font-size: 3.5vmin;
+  text-align: center;
+  border: none;
+}
+
+.main {
+  font-size: 4.5vmin;
+}
+
+.merge-err {
+  background-color: rgb(185, 102, 74);
+}
+
+.merge {
+  background-color: rgb(48, 60, 107);
+}
+
+.row {
+  background-color: rgba(255,255,255,0.2);
+  border-radius: 10px;
+  margin-bottom: 30px;
+}
+
+.pr-closed .col {
+  color: darkgray;
+}
+
+.pr-closed img {
+  opacity: 0.5;
+}
+
+.build {
+  padding: 20px;
+  border-radius: 20px;
+  width: 40px;
+  height: 40px;
+}
+
+.success {
+  background-color: green;
+}
+
+.pending {
+  background-color: orange;
+}
+
+.failure {
+  background-color: red;
+}
+
+.error {
+  background-color: mediumvioletred;
+}

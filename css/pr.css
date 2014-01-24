@@ -69,6 +69,10 @@ body {
   margin-bottom: 30px;
 }
 
+.pr-closed {
+  opacity: 0.6;
+}
+
 .pr-closed .col {
   color: darkgray;
 }

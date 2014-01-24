@@ -2,7 +2,10 @@ window.showPulls = (function() {
   var config = {};
 
   var updateConfig = function() {
-    return $.getJSON('config/config.json').then(function(configJSON) {
+    return $.ajax('config/config.json', {
+      dataType: 'json',
+      cache: false
+    }).then(function(configJSON) {
       if (config.version && configJSON.version > config.version) {
         location.reload();
       }
@@ -19,8 +22,10 @@ window.showPulls = (function() {
     var localConfig = config;
 
     $.when($.ajax('https://api.github.com/repos/' + localConfig.owner + '/' + localConfig.repo + '/pulls', {
+        dataType: 'json',
         data: {access_token: localConfig.accessToken}
       }), $.ajax('https://api.github.com/repos/' + localConfig.owner + '/' + localConfig.repo + '/pulls', {
+        dataType: 'json',
         data: {
           access_token: localConfig.accessToken,
           base: localConfig.closedBranch,
@@ -49,8 +54,10 @@ window.showPulls = (function() {
           }
 
           return $.when($.ajax('https://api.github.com/repos/' + localConfig.owner + '/' + localConfig.repo + '/pulls/' + pullRequest.number, {
+              dataType: 'json',
               data: {access_token: localConfig.accessToken}
             }), $.ajax('https://api.github.com/repos/' + localConfig.owner + '/' + localConfig.repo + '/statuses/' + pullRequest.head.sha, {
+              dataType: 'json',
               data: {access_token: localConfig.accessToken}
             })).then(function(detail, status) {
               obj.mergeable = detail[0].mergeable;

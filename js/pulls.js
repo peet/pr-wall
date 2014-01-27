@@ -71,12 +71,23 @@ window.showPulls = (function() {
 
         var out = $('#out').empty();
 
-        $('#mainTitle, title').text(config.title + 'Pull Requests [' + arr.reduce(function(val, pr) {
+        $('#mainTitle, title').text(config.title + ' Pull Requests [' + arr.reduce(function(val, pr) {
           return val + +pr.open;
         }, 0) + ']');
 
         arr.forEach(function(pr) {
-          var titleSpan = (pr.assignee ? 'span_5_of_8' : 'span_7_of_8') + (pr.open ? (' merge' + (pr.mergeable ? '' : '-err')) : '');
+
+          var buildStatus = '';
+          if (pr.open){
+            if (pr.mergeable){
+              buildStatus = pr.build;
+            } else {
+              buildStatus = 'merge-err';
+            };
+
+          }
+
+          var titleSpan = (pr.assignee ? 'span_5_of_8' : 'span_7_of_8') + ' ' + buildStatus;
 
           var div = $('<div class="section group row ' + (pr.open ? '' : 'pr-closed') + '"></div>');
 
@@ -92,7 +103,9 @@ window.showPulls = (function() {
                 '<div class="col span_8_of_8 body">' + pr.body + '</div>' +
                 '</div>' : '') +
             '<div class="section group">' +
-            '<div class="col span_2_of_8 to">' + pr.to + '</div><div class="col span_5_of_8">&lt;&lt;-- ' + pr.from + '</div><div class="col span_1_of_8 build ' + pr.build + '"></div>' +
+            '<div class="col span_2_of_8 to">' + pr.to + '</div><div class="col span_5_of_8">&lt;&lt;-- ' + pr.from + '</div>' +
+
+              //'</div><div class="col span_1_of_8 build ' + pr.build + '"></div>' +
             '</div>' +
             '</div>');
 

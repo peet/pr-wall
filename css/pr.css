@@ -57,11 +57,7 @@ body {
 }
 
 .merge-err {
-  background-color: rgb(185, 102, 74);
-}
-
-.merge {
-  background-color: rgb(48, 60, 107);
+  background-color:  #9E9E9E;
 }
 
 .row {
@@ -102,15 +98,17 @@ body {
 }
 
 .success {
-  background-color: green;
+  background-color: #87B576;
 }
 
 .pending {
-  background-color: orange;
+  background-color: #CFC167;
 }
 
 .failure {
-  background-color: red;
+  background-color: #9E0000;
+    border: 2px black;
+    border-style: solid;
 }
 
 .error {

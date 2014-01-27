@@ -17,6 +17,11 @@ body {
   margin-bottom: 0.5%;
 }
 
+.col a {
+  text-decoration: none;
+  color: white;
+}
+
 .nowrap .col {
   white-space: nowrap;
   overflow: hidden;
@@ -27,7 +32,7 @@ body {
   margin: 0;
 }
 
-.img-container {
+.img-container , .when , .body {
   text-align: center;
   font-size: 2vmin;
 }
@@ -35,10 +40,6 @@ body {
 .img-container img {
   height: 8vmin;
   width: 8vmin;
-}
-
-.when, .body {
-  text-align: center;
 }
 
 .to {
@@ -73,12 +74,24 @@ body {
   opacity: 0.6;
 }
 
-.pr-closed .col {
+.pr-closed .col, .pr-closed .col a {
   color: darkgray;
 }
 
 .pr-closed img {
   opacity: 0.5;
+}
+
+.assignee {
+  border: 1px solid white;
+  text-align: center;
+}
+
+.assignee img {
+  width: 4vmin;
+  height: 4vmin;
+  vertical-align: middle;
+  margin-right: 1vmin;
 }
 
 .build {

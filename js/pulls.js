@@ -38,6 +38,7 @@ window.showPulls = (function() {
 
           var obj = {
             number: pullRequest.number,
+            url: pullRequest.html_url,
             open: open,
             title: pullRequest.title,
             body: pullRequest.body,
@@ -75,16 +76,16 @@ window.showPulls = (function() {
         }, 0) + ']');
 
         arr.forEach(function(pr) {
-          var titleSpan = (pr.assignee ? 'span_5_of_8' : 'span_6_of_8') + (pr.open ? (' merge' + (pr.mergeable ? '' : '-err')) : '');
+          var titleSpan = (pr.assignee ? 'span_5_of_8' : 'span_7_of_8') + (pr.open ? (' merge' + (pr.mergeable ? '' : '-err')) : '');
 
           var div = $('<div class="section group row ' + (pr.open ? '' : 'pr-closed') + '"></div>');
 
           div.append('<div class="col span_1_of_8 block img-container"><img src="' + pr.avatar + '"><br>' + pr.user + '</div>');
           div.append('<div class="col span_7_of_8 nowrap block">' +
             '<div class="section group">' +
-            '<div class="col ' + titleSpan + ' title">' + pr.title + '</div>' +
-            (pr.assignee ? '<div class="col span_1_of_8">' + pr.assignee.login + '</div>' : '') +
-            '<div class="col span_2_of_8 when">' + pr.time + '</div>' +
+            '<div class="col ' + titleSpan + ' title"><a href="' + pr.url + '">' + pr.title + '</a></div>' +
+            (pr.assignee ? '<div class="col span_2_of_8 assignee"><img src="' + pr.assignee.avatar_url + '">' + pr.assignee.login + '</div>' : '') +
+            '<div class="col span_1_of_8 when">' + pr.time + '</div>' +
             '</div>' +
             (pr.body ?
               '<div class="section group">' +
@@ -101,6 +102,11 @@ window.showPulls = (function() {
         setTimeout(showPulls, 30000);
       });
   }
+
+  $('body').on('click', 'a', function(e) {
+    window.open(this.href);
+    e.preventDefault();
+  });
 
   return function() {
     updateConfig().then(showPulls);

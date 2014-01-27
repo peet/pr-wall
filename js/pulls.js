@@ -1,4 +1,6 @@
 window.showPulls = (function() {
+  var qs = location.search.substring(1).split('&').map(function(e) {return e.split('=')}).reduce(function(o, e){o[e[0]] = decodeURI(e[1]); return o}, {});
+  var version;
   var config = {};
 
   var updateConfig = function() {
@@ -6,10 +8,11 @@ window.showPulls = (function() {
       dataType: 'json',
       cache: false
     }).then(function(configJSON) {
-      if (config.version && configJSON.version > config.version) {
+      if (version && configJSON.version > version) {
         location.reload();
       }
-      config = configJSON;
+      version = configJSON.version;
+      config = $.extend(configJSON, qs);
 
       $('#prTitle').text(config.title || '');
 
@@ -61,8 +64,8 @@ window.showPulls = (function() {
               dataType: 'json',
               data: {access_token: localConfig.accessToken}
             })).then(function(detail, status) {
-              obj.mergeable = detail[0].mergeable;
-              obj.build = status[0].length ? status[0][0].state : 'pending';
+              obj.mergeable = detail[0].mergeable != false ;
+              obj.build = status[0].length ? status[0][0].state : '';
               return obj;
             });
         }));

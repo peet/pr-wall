@@ -17,8 +17,21 @@ window.showPulls = (function() {
       $('#prTitle').text(config.title || '');
 
       setTimeout(updateConfig, config.refreshConfig);
+    }, function() {
+      setTimeout(updateConfig, config.refreshConfig);
     });
   };
+
+  function scrollTo(element, to, duration, callback) {
+    if (duration <= 0) return callback && callback();
+    var difference = to - element.scrollTop;
+    var perTick = difference / duration * 10;
+
+    setTimeout(function() {
+      element.scrollTop = element.scrollTop + perTick;
+      scrollTo(element, to, duration - 10, callback);
+    }, 10);
+  }
 
   function showPulls() {
 
@@ -69,7 +82,7 @@ window.showPulls = (function() {
               return obj;
             });
         }));
-      }).done(function() {
+      }).then(function() {
         var arr = $.makeArray(arguments);
 
         var out = $('#out').empty();
@@ -115,7 +128,19 @@ window.showPulls = (function() {
           out.append(div);
         });
 
-        setTimeout(showPulls, 30000);
+        document.body.scrollTop = 9999;
+        var bottom = document.body.scrollTop;
+        document.body.scrollTop = 0;
+
+        scrollTo(document.body, bottom, 5000, function() {
+          setTimeout(function() {
+            scrollTo(document.body, 0, 5000, function() {
+              setTimeout(showPulls, 15000);
+            });
+          }, 5000);
+        });
+      }, function() {
+        setTimeout(showPulls, 5000);
       });
   }
 

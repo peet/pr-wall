@@ -103,6 +103,28 @@ window.showPulls = (function() {
 
           }
 
+          var pullTo = pr.to;
+          pullTo = hightlight(pullTo,"develop", "#adff2f");
+          pullTo = hightlight(pullTo,"release", "orange");
+          pullTo = hightlight(pullTo,"master", "#8b0000");
+
+          var pullFrom = pr.from;
+          pullFrom = hightlight(pullFrom,"develop", "#adff2f");
+          pullFrom = hightlight(pullFrom,"release", "orange");
+          pullFrom = hightlight(pullFrom,"master", "#8b0000");
+
+
+
+
+          function hightlight(input, name, colour) {
+
+            if (input.indexOf(name) != -1) {
+               return input.replace(name,'<b><font color="'+colour+'">' +name+ '</font></b>');
+            }
+            return input;
+          }
+
+
           var titleSpan = (pr.assignee ? 'span_5_of_8' : 'span_7_of_8') + ' ' + buildStatus;
 
           var div = $('<div class="section group row ' + (pr.open ? '' : 'pr-closed') + '"></div>');
@@ -119,7 +141,7 @@ window.showPulls = (function() {
                 '<div class="col span_8_of_8 body">' + pr.body + '</div>' +
                 '</div>' : '') +
             '<div class="section group">' +
-            '<div class="col span_2_of_8 to">' + pr.to + '</div><div class="col span_5_of_8">&lt;&lt;-- ' + pr.from + '</div>' +
+            '<div class="col span_2_of_8 to">' + pullTo + '</div><div class="col span_5_of_8">&lt;&lt;-- ' + pullFrom + '</div>' +
 
               //'</div><div class="col span_1_of_8 build ' + pr.build + '"></div>' +
             '</div>' +

@@ -115,4 +115,14 @@ body {
   background-color:  #535353;
 }
 
+.hi-develop {
+  color: #adff2f;
+}
 
+.hi-release {
+  color: orange;
+}
+
+.hi-master {
+  color: #8b0000;
+}

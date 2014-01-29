@@ -33,6 +33,27 @@ window.showPulls = (function() {
     }, 10);
   }
 
+  function stripOwner(input, owner) {
+    if (~input.indexOf(owner + ':')) {
+      return input.replace(owner + ':', '');
+    }
+    return input;
+  }
+
+  var hiliteBranch = (function() {
+    var matches = ['(:|^)((develop))$','(:|^)((master))$','(:|^)((release)[/-].+)$'].map(function(s) { return RegExp(s) });
+    return function(input) {
+      var i = matches.length;
+      while (i--) {
+        var branch = matches[i];
+        if (input.match(branch)) {
+          return input.replace(branch, '$1<span class="hi-$3">$2</span>');
+        }
+      }
+      return input;
+    }
+  })();
+
   function showPulls() {
 
     var localConfig = config;
@@ -63,7 +84,7 @@ window.showPulls = (function() {
             avatar: pullRequest.user.avatar_url,
             assignee: pullRequest.assignee,
             from: pullRequest.head.label,
-            to: pullRequest.base.label
+            to: stripOwner(pullRequest.base.label, localConfig.owner)
           };
 
           if (!open) {
@@ -93,37 +114,10 @@ window.showPulls = (function() {
 
         arr.forEach(function(pr) {
 
-          var buildStatus = '';
-          if (pr.open){
-            if (pr.mergeable){
-              buildStatus = pr.build;
-            } else {
-              buildStatus = 'merge-err';
-            };
+          var buildStatus = pr.open ? pr.mergeable ? pr.build : 'merge-err' : '';
 
-          }
-
-          var pullTo = pr.to;
-          pullTo = hightlight(pullTo,"develop", "#adff2f");
-          pullTo = hightlight(pullTo,"release", "orange");
-          pullTo = hightlight(pullTo,"master", "#8b0000");
-
-          var pullFrom = pr.from;
-          pullFrom = hightlight(pullFrom,"develop", "#adff2f");
-          pullFrom = hightlight(pullFrom,"release", "orange");
-          pullFrom = hightlight(pullFrom,"master", "#8b0000");
-
-
-
-
-          function hightlight(input, name, colour) {
-
-            if (input.indexOf(name) != -1) {
-               return input.replace(name,'<b><font color="'+colour+'">' +name+ '</font></b>');
-            }
-            return input;
-          }
-
+          var pullTo = hiliteBranch(pr.to);
+          var pullFrom = hiliteBranch(pr.from);
 
           var titleSpan = (pr.assignee ? 'span_5_of_8' : 'span_7_of_8') + ' ' + buildStatus;
 

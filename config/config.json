@@ -4,6 +4,10 @@
   "repo": "mediagraft",
   "closedBranch": "develop",
   "accessToken": "<put your access token here>",
+  "ghprb": {
+    "jenkinsRoot": "http://jenkins:8081/",
+    "jobName": "build-api-pull-requests"
+  },
   "refreshConfig": 120000,
   "version": 1
 }

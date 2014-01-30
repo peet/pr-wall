@@ -123,16 +123,24 @@ window.showPulls = (function() {
 
           var div = $('<div class="section group row ' + (pr.open ? '' : 'pr-closed') + '"></div>');
 
+          var marqueeizeAtLength = (function(input, length) {
+              if (input.length > length){
+                return '<marquee behavior="alternate" scrollamount="1">' + input + '</marquee>';
+              } else {
+                return input;
+              }
+          });
+
           div.append('<div class="col span_1_of_8 block img-container"><img src="' + pr.avatar + '"><br>' + pr.user + '</div>');
           div.append('<div class="col span_7_of_8 nowrap block">' +
             '<div class="section group">' +
-            '<div class="col ' + titleSpan + ' title"><a href="' + pr.url + '">' + pr.title + '</a></div>' +
+            '<div class="col ' + titleSpan + ' title"><a href="' + pr.url + '">' + marqueeizeAtLength(pr.title,50) + '</a></div>' +
             (pr.assignee ? '<div class="col span_2_of_8 assignee"><img src="' + pr.assignee.avatar_url + '">' + pr.assignee.login + '</div>' : '') +
             '<div class="col span_1_of_8 when">' + pr.time + '</div>' +
             '</div>' +
             (pr.body ?
               '<div class="section group">' +
-                '<div class="col span_8_of_8 body">' + pr.body + '</div>' +
+                '<div class="col span_8_of_8 body">' + marqueeizeAtLength(pr.body,100) + '</div>' +
                 '</div>' : '') +
             '<div class="section group">' +
             '<div class="col span_2_of_8 to">' + pullTo + '</div><div class="col span_5_of_8">&lt;&lt;-- ' + pullFrom + '</div>' +

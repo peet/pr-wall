@@ -22,15 +22,28 @@ window.showPulls = (function() {
     });
   };
 
-  function scrollTo(element, to, duration, callback) {
-    if (duration <= 0) return callback && callback();
-    var difference = to - element.scrollTop;
-    var perTick = difference / duration * 10;
+  function animate(element, property, options) {
+    if (options.duration <= 0) {
+      options.callback && options.callback();
+    }
+    else {
+      var currentVal = +(/[\d\.]+/.exec(element[property] + '')) || 0;
+      var difference = options.to - currentVal;
+      var perTick = difference / options.duration * (options.tick || 10);
 
-    setTimeout(function() {
-      element.scrollTop = element.scrollTop + perTick;
-      scrollTo(element, to, duration - 10, callback);
-    }, 10);
+      setTimeout(function() {
+        var newVal = currentVal + perTick;
+        if (options.unit) {
+          newVal += options.unit;
+        }
+        element[property] = newVal;
+        animate(element, property, $.extend(options, {duration: options.duration - 10}));
+      }, options.tick || 10);
+    }
+  }
+
+  function scrollTo(to, duration, callback) {
+    animate(document.documentElement, 'scrollTop', {to: to, duration: duration, callback: callback});
   }
 
   function stripOwner(input, owner) {
@@ -126,7 +139,7 @@ window.showPulls = (function() {
           div.append('<div class="col span_1_of_8 block img-container"><img src="' + pr.avatar + '"><br>' + pr.user + '</div>');
           div.append('<div class="col span_7_of_8 nowrap block">' +
             '<div class="section group">' +
-            '<div class="col ' + titleSpan + ' title"><a href="' + pr.url + '">' + pr.title + '</a></div>' +
+            '<div class="col ' + titleSpan + ' title">' + (buildStatus == 'pending' ? '<div class="progress" id="prog_' + pr.number + '"></div>' : '' ) + '<a href="' + pr.url + '">' + pr.title + '</a></div>' +
             (pr.assignee ? '<div class="col span_2_of_8 assignee"><img src="' + pr.assignee.avatar_url + '">' + pr.assignee.login + '</div>' : '') +
             '<div class="col span_1_of_8 when">' + pr.time + '</div>' +
             '</div>' +
@@ -137,20 +150,46 @@ window.showPulls = (function() {
             '<div class="section group">' +
             '<div class="col span_2_of_8 to">' + pullTo + '</div><div class="col span_5_of_8">&lt;&lt;-- ' + pullFrom + '</div>' +
 
-              //'</div><div class="col span_1_of_8 build ' + pr.build + '"></div>' +
             '</div>' +
             '</div>');
 
           out.append(div);
+
+          if (localConfig.ghprb && buildStatus == 'pending') {
+            $.ajax(localConfig.ghprb.jenkinsRoot + 'job/' + localConfig.ghprb.jobName + '/api/json', {
+              dataType: 'jsonp',
+              jsonp: 'jsonp',
+              data: {
+                tree: 'builds[number,url,actions[parameters[name,value]],timestamp,estimatedDuration,result,building]'
+              }
+            }).done(function(builder) {
+              for (var i = 0; i < builder.builds.length; i++) {
+                var build = builder.builds[i];
+                if (build.actions[0].parameters[2].value == pr.number) {
+                  var timeTaken = new Date().getTime() - build.timestamp;
+                  var timeLeft = build.estimatedDuration - timeTaken;
+                  var progressBarStyle = document.getElementById('prog_' + pr.number).style;
+                  if (build.building && timeLeft > 0) {
+                    progressBarStyle.width = (timeTaken / build.estimatedDuration * 100) + '%';
+                    animate(progressBarStyle, 'width', {to: 100, unit: '%', duration: timeLeft});
+                  }
+                  else {
+                    progressBarStyle.width = '100%';
+                  }
+                  return;
+                }
+              }
+            })
+          }
         });
 
-        document.body.scrollTop = 9999;
-        var bottom = document.body.scrollTop;
-        document.body.scrollTop = 0;
+        document.documentElement.scrollTop = 9999;
+        var bottom = document.documentElement.scrollTop;
+        document.documentElement.scrollTop = 0;
 
-        scrollTo(document.body, bottom, 5000, function() {
+        scrollTo(bottom, 5000, function() {
           setTimeout(function() {
-            scrollTo(document.body, 0, 5000, function() {
+            scrollTo(0, 5000, function() {
               setTimeout(showPulls, 15000);
             });
           }, 5000);

@@ -20,6 +20,8 @@ body {
 .col a {
   text-decoration: none;
   color: white;
+  position: relative;
+  z-index: 1;
 }
 
 .nowrap .col {
@@ -50,6 +52,7 @@ body {
   font-size: 3.5vmin;
   text-align: center;
   border: 2px solid gray;
+  position: relative;
 }
 
 .main {
@@ -98,7 +101,7 @@ body {
   background-color: #326B1C;
 }
 
-.pending {
+.pending  .progress {
   background-color: #9E8900;
 }
 
@@ -113,6 +116,16 @@ body {
 
 .merge-err {
   background-color:  #535353;
+}
+
+.progress {
+  position: absolute;
+  height: 100%;
+  width: 0;
+  left: 0;
+  top: 0;
+  margin: 0;
+  padding: 0;
 }
 
 .hi-develop {

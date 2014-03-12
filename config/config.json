@@ -1,0 +1,9 @@
+{
+  "title": "Mediagraft",
+  "owner": "we7",
+  "repo": "mediagraft",
+  "closedBranch": "develop",
+  "accessToken": "<put your access token here>",
+  "refreshConfig": 120000,
+  "version": 1
+}

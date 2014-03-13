@@ -11,7 +11,38 @@
 <div id="out"></div>
 <script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
 <script src="js/moment.min.js"></script>
+<script src="js/tim.js"></script>
+<script src="js/utils.js"></script>
 <script src="js/pulls.js"></script>
+<script type="text/tim" data-tim="pullrequest">
+<div class="section group row{{isClosed}} pr-closed{{/isClosed}}" data-pr="{{pr.number}}">
+  <div class="col span_1_of_8 block img-container">
+    <img src="{{pr.avatar}}">
+    <br>{{pr.user}}
+  </div>
+  <div class="col span_7_of_8 nowrap block">
+    <div class="section group">
+      <div class="col {{titleSpan}} title">
+        {{isPending}}<div class="progress" id="prog_{{pr.number}}"></div>{{/isPending}}
+        <a href="{{pr.url}}">{{pr.title}}</a>
+      </div>
+      {{isAssigned}}
+      <div class="col span_2_of_8 assignee"><img src="{{pr.assignee.avatar_url}}">{{pr.assignee.login}}</div>
+      {{/isAssigned}}
+      <div class="col span_1_of_8 when">{{pr.time}}</div>
+    </div>
+    {{hasBody}}
+    <div class="section group">
+      <div class="col span_8_of_8 body">{{pr.body}}</div>
+    </div>
+    {{/hasBody}}
+    <div class="section group">
+      <div class="col span_2_of_8 to">{{pullTo}}</div>
+      <div class="col span_5_of_8">&lt;&lt;-- {{pullFrom}}</div>
+    </div>
+  </div>
+</div>
+</script>
 <script>
  showPulls();
 </script>

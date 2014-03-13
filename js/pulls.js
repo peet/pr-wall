@@ -14,37 +14,11 @@ window.showPulls = (function() {
       version = configJSON.version;
       config = $.extend(configJSON, qs);
 
-      $('#prTitle').text(config.title || '');
-
       setTimeout(updateConfig, config.refreshConfig);
     }, function() {
       setTimeout(updateConfig, config.refreshConfig);
     });
   };
-
-  function animate(element, property, options) {
-    if (options.duration <= 0) {
-      options.callback && options.callback();
-    }
-    else {
-      var currentVal = +(/[\d\.]+/.exec(element[property] + '')) || 0;
-      var difference = options.to - currentVal;
-      var perTick = difference / options.duration * (options.tick || 10);
-
-      setTimeout(function() {
-        var newVal = currentVal + perTick;
-        if (options.unit) {
-          newVal += options.unit;
-        }
-        element[property] = newVal;
-        animate(element, property, $.extend(options, {duration: options.duration - 10}));
-      }, options.tick || 10);
-    }
-  }
-
-  function scrollTo(to, duration, callback) {
-    animate(document.documentElement, 'scrollTop', {to: to, duration: duration, callback: callback});
-  }
 
   function stripOwner(input, owner) {
     if (~input.indexOf(owner + ':')) {
@@ -67,22 +41,46 @@ window.showPulls = (function() {
     }
   })();
 
+  function github(url, data) {
+    data || (data = {});
+
+    return $.ajax(url, {
+      dataType: 'json',
+      data: $.extend({
+        access_token: config.accessToken
+      }, data)
+    })
+  }
+
+  function trustedUser(pullRequest) {
+    return $.inArray(pullRequest.user.login, config.trustedUsers) > -1;
+  }
+
+  function formatPull(pr) {
+    return tim('pullrequest', {
+      titleSpan: (pr.assignee ? 'span_5_of_8' : 'span_7_of_8') + ' ' + pr.buildStatus,
+      pullTo: hiliteBranch(pr.to),
+      pullFrom: hiliteBranch(pr.from),
+      isClosed: !pr.open,
+      isPending: pr.buildStatus == 'pending',
+      isAssigned: !!pr.assignee,
+      hasBody: !!pr.body,
+      pr: pr
+    });
+  }
+
   function showPulls() {
 
     var localConfig = config;
 
-    $.when($.ajax('https://api.github.com/repos/' + localConfig.owner + '/' + localConfig.repo + '/pulls', {
-        dataType: 'json',
-        data: {access_token: localConfig.accessToken}
-      }), $.ajax('https://api.github.com/repos/' + localConfig.owner + '/' + localConfig.repo + '/pulls', {
-        dataType: 'json',
-        data: {
-          access_token: localConfig.accessToken,
-          base: localConfig.closedBranch,
-          state: 'closed'
-        }
-      })).then(function(openReq, closedReq) {
-        var all = openReq[0].concat(closedReq[0].slice(0, Math.max(0, 6 - openReq[0].length)));
+    var pullsUrl = 'https://api.github.com/repos/' + localConfig.owner + '/' + localConfig.repo + '/pulls';
+
+    $.when(github(pullsUrl), github(pullsUrl, {
+      base: localConfig.closedBranch,
+      state: 'closed'
+    }))
+      .then(function(openReq, closedReq) {
+        var all = openReq[0].concat(closedReq[0].slice(0, 6));
         return $.when.apply($, all.map(function(pullRequest) {
           var open = pullRequest.state == 'open';
 
@@ -101,35 +99,17 @@ window.showPulls = (function() {
           };
 
           if (!open) {
-            obj.show = true
             return obj;
           }
-          //alert(pullRequest.issues_url)
-          return $.when(
-            $.ajax('https://api.github.com/repos/' + localConfig.owner + '/' + localConfig.repo + '/pulls/' + pullRequest.number, {
-              dataType: 'json',
-              data: {access_token: localConfig.accessToken}
-            }),
-            $.ajax('https://api.github.com/repos/' + localConfig.owner + '/' + localConfig.repo + '/statuses/' + pullRequest.head.sha, {
-              dataType: 'json',
-              data: {access_token: localConfig.accessToken}
-            }),
-            $.ajax('https://api.github.com/repos/' + localConfig.owner + '/' + localConfig.repo + '/issues/' + pullRequest.number + '/comments', {
-                dataType: 'json',
-                data: {access_token: localConfig.accessToken}
-            })).then(function(detail, status, comments) {
+
+          return $.when(github(pullRequest.url), github(pullRequest.statuses_url), trustedUser(pullRequest) || github(pullRequest.comments_url))
+            .then(function(detail, status, comments) {
               obj.mergeable = detail[0].mergeable != false ;
               obj.build = status[0].length ? status[0][0].state : '';
 
-              var alert = $.inArray(pullRequest.user.login, localConfig.trustedUsers) > -1;
-
-                comments[0].forEach(function(comment){
-
-                  if (comment.body.indexOf("core review") != -1) {
-                    alert = true;
-                  }
-              })
-              obj.show = alert
+              obj.show = comments === true || comments[0].some(function(comment){
+                return ~comment.body.indexOf("core review");
+              });
               return obj;
             });
         }));
@@ -139,85 +119,52 @@ window.showPulls = (function() {
         var out = $('#out').empty();
 
         $('#mainTitle, title').text(config.title + ' Pull Requests [' + arr.reduce(function(val, pr) {
-          return val + +pr.open;
+          return val + +(pr.open && pr.show);
         }, 0) + ']');
 
-          function formatPull(pr) {
+        var count = 0;
 
-            function ediv(clazz, body) {
-              return '<div' + (clazz ? ' class="' + clazz + '"' : '') + '>' + body + '</div>'
-            }
+        arr.every(function(pr) {
+          pr.buildStatus =  pr.open ? pr.mergeable ? pr.build : 'merge-err' : '';
 
-            //var buildStatus = pr.open ? pr.mergeable ? pr.build : 'merge-err' : '';
-            var pullTo = hiliteBranch(pr.to);
-            var pullFrom = hiliteBranch(pr.from);
-            var titleSpan = (pr.assignee ? 'span_5_of_8' : 'span_7_of_8') + ' ' + pr.buildStatus;
-            var div = $('<div class="section group row ' + (pr.open ? '' : 'pr-closed') + '"></div>');
-
-            div.append(ediv("col span_1_of_8 block img-container",'<img src="' + pr.avatar + '"><br>' + pr.user));
-
-            div.append('<div class="col span_7_of_8 nowrap block">' +
-                '<div class="section group">' +
-                '<div class="col ' + titleSpan + ' title">' + (pr.buildStatus == 'pending' ? '<div class="progress" id="prog_' + pr.number + '"></div>' : '' ) + '<a href="' + pr.url + '">' + pr.title + '</a></div>' +
-                (pr.assignee ? ediv("col span_2_of_8 assignee",'<img src="' + pr.assignee.avatar_url + '">' + pr.assignee.login) : '') +
-                ediv('col span_1_of_8 when', pr.time) +
-                '</div>' +
-                (pr.body ? ediv("section group", ediv("col span_8_of_8 body", pr.body)) : '') +
-                '<div class="section group">' +
-                  ediv("col span_2_of_8 to", pullTo) +
-                  ediv("col span_5_of_8",'&lt;&lt;-- ' + pullFrom ) +
-
-                '</div>' +
-                '</div>');
-            return  div;
+          if (!pr.open || pr.show) {
+            out.append(formatPull(pr));
+            count++;
           }
 
-          arr.forEach(function(pr) {
-            pr.buildStatus =  pr.open ? pr.mergeable ? pr.build : 'merge-err' : '';
+          if (pr.show && localConfig.ghprb && pr.buildStatus == 'pending') {
+            $.ajax(localConfig.ghprb.jenkinsRoot + 'job/' + localConfig.ghprb.jobName + '/api/json', {
+              dataType: 'jsonp',
+              jsonp: 'jsonp',
+              data: {
+                tree: 'builds[number,url,actions[parameters[name,value]],timestamp,estimatedDuration,result,building]'
+              }
+            }).done(function (builder) {
+              var found = false;
+              builder.builds.every(function(build) {
+                if (build.actions[0].parameters[2].value == pr.number) {
+                  var timeTaken = new Date().getTime() - build.timestamp;
+                  var timeLeft = build.estimatedDuration - timeTaken;
 
-            if (pr.show) {
-              out.append(formatPull(pr));
-            }
-
-            if (localConfig.ghprb && pr.buildStatus == 'pending') {
-              $.ajax(localConfig.ghprb.jenkinsRoot + 'job/' + localConfig.ghprb.jobName + '/api/json', {
-                dataType: 'jsonp',
-                jsonp: 'jsonp',
-                data: {
-                  tree: 'builds[number,url,actions[parameters[name,value]],timestamp,estimatedDuration,result,building]'
+                  var progressBarStyle = $('<div/>').addClass('progress').prependTo($('[data-pr="' + pr.number + '"] .title'))[0].style;
+                  if (build.building && timeLeft > 0) {
+                    progressBarStyle.width = (timeTaken / build.estimatedDuration * 100) + '%';
+                    _.animate(progressBarStyle, 'width', {to: 100, unit: '%', duration: timeLeft});
+                  }
+                  else {
+                    progressBarStyle.width = '100%';
+                  }
+                  found = true;
                 }
-              }).done(function (builder) {
-                    for (var i = 0; i < builder.builds.length; i++) {
-                      var build = builder.builds[i];
-                      if (build.actions[0].parameters[2].value == pr.number) {
-                        var timeTaken = new Date().getTime() - build.timestamp;
-                        var timeLeft = build.estimatedDuration - timeTaken;
-                        var progressBarStyle = document.getElementById('prog_' + pr.number).style;
-                        if (build.building && timeLeft > 0) {
-                          progressBarStyle.width = (timeTaken / build.estimatedDuration * 100) + '%';
-                          animate(progressBarStyle, 'width', {to: 100, unit: '%', duration: timeLeft});
-                        }
-                        else {
-                          progressBarStyle.width = '100%';
-                        }
-                        return;
-                      }
-                    }
-                  })
-            }
-          });
+                return !found; //continue if not found
+              });
+            })
+          }
 
-        document.documentElement.scrollTop = 9999;
-        var bottom = document.documentElement.scrollTop;
-        document.documentElement.scrollTop = 0;
-
-        scrollTo(bottom, 5000, function() {
-          setTimeout(function() {
-            scrollTo(0, 5000, function() {
-              setTimeout(showPulls, 15000);
-            });
-          }, 5000);
+          return count < 6; //continue if we've done less than 6
         });
+
+        _.scrollDownUp();
       }, function() {
         setTimeout(showPulls, 5000);
       });
@@ -229,6 +176,7 @@ window.showPulls = (function() {
   });
 
   return function() {
+    tim.dom({attr:"data-tim"});
     updateConfig().then(showPulls);
   };
 })();

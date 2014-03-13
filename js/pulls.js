@@ -101,18 +101,35 @@ window.showPulls = (function() {
           };
 
           if (!open) {
+            obj.show = true
             return obj;
           }
-
-          return $.when($.ajax('https://api.github.com/repos/' + localConfig.owner + '/' + localConfig.repo + '/pulls/' + pullRequest.number, {
+          //alert(pullRequest.issues_url)
+          return $.when(
+            $.ajax('https://api.github.com/repos/' + localConfig.owner + '/' + localConfig.repo + '/pulls/' + pullRequest.number, {
               dataType: 'json',
               data: {access_token: localConfig.accessToken}
-            }), $.ajax('https://api.github.com/repos/' + localConfig.owner + '/' + localConfig.repo + '/statuses/' + pullRequest.head.sha, {
+            }),
+            $.ajax('https://api.github.com/repos/' + localConfig.owner + '/' + localConfig.repo + '/statuses/' + pullRequest.head.sha, {
               dataType: 'json',
               data: {access_token: localConfig.accessToken}
-            })).then(function(detail, status) {
+            }),
+            $.ajax('https://api.github.com/repos/' + localConfig.owner + '/' + localConfig.repo + '/issues/' + pullRequest.number + '/comments', {
+                dataType: 'json',
+                data: {access_token: localConfig.accessToken}
+            })).then(function(detail, status, comments) {
               obj.mergeable = detail[0].mergeable != false ;
               obj.build = status[0].length ? status[0][0].state : '';
+
+              var alert = $.inArray(pullRequest.user.login, localConfig.trustedUsers) > -1;
+
+                comments[0].forEach(function(comment){
+
+                  if (comment.body.indexOf("core review") != -1) {
+                    alert = true;
+                  }
+              })
+              obj.show = alert
               return obj;
             });
         }));
@@ -125,63 +142,70 @@ window.showPulls = (function() {
           return val + +pr.open;
         }, 0) + ']');
 
-        arr.forEach(function(pr) {
+          function formatPull(pr) {
 
-          var buildStatus = pr.open ? pr.mergeable ? pr.build : 'merge-err' : '';
+            function ediv(clazz, body) {
+              return '<div' + (clazz ? ' class="' + clazz + '"' : '') + '>' + body + '</div>'
+            }
 
-          var pullTo = hiliteBranch(pr.to);
-          var pullFrom = hiliteBranch(pr.from);
+            //var buildStatus = pr.open ? pr.mergeable ? pr.build : 'merge-err' : '';
+            var pullTo = hiliteBranch(pr.to);
+            var pullFrom = hiliteBranch(pr.from);
+            var titleSpan = (pr.assignee ? 'span_5_of_8' : 'span_7_of_8') + ' ' + pr.buildStatus;
+            var div = $('<div class="section group row ' + (pr.open ? '' : 'pr-closed') + '"></div>');
 
-          var titleSpan = (pr.assignee ? 'span_5_of_8' : 'span_7_of_8') + ' ' + buildStatus;
+            div.append(ediv("col span_1_of_8 block img-container",'<img src="' + pr.avatar + '"><br>' + pr.user));
 
-          var div = $('<div class="section group row ' + (pr.open ? '' : 'pr-closed') + '"></div>');
+            div.append('<div class="col span_7_of_8 nowrap block">' +
+                '<div class="section group">' +
+                '<div class="col ' + titleSpan + ' title">' + (pr.buildStatus == 'pending' ? '<div class="progress" id="prog_' + pr.number + '"></div>' : '' ) + '<a href="' + pr.url + '">' + pr.title + '</a></div>' +
+                (pr.assignee ? ediv("col span_2_of_8 assignee",'<img src="' + pr.assignee.avatar_url + '">' + pr.assignee.login) : '') +
+                ediv('col span_1_of_8 when', pr.time) +
+                '</div>' +
+                (pr.body ? ediv("section group", ediv("col span_8_of_8 body", pr.body)) : '') +
+                '<div class="section group">' +
+                  ediv("col span_2_of_8 to", pullTo) +
+                  ediv("col span_5_of_8",'&lt;&lt;-- ' + pullFrom ) +
 
-          div.append('<div class="col span_1_of_8 block img-container"><img src="' + pr.avatar + '"><br>' + pr.user + '</div>');
-          div.append('<div class="col span_7_of_8 nowrap block">' +
-            '<div class="section group">' +
-            '<div class="col ' + titleSpan + ' title">' + (buildStatus == 'pending' ? '<div class="progress" id="prog_' + pr.number + '"></div>' : '' ) + '<a href="' + pr.url + '">' + pr.title + '</a></div>' +
-            (pr.assignee ? '<div class="col span_2_of_8 assignee"><img src="' + pr.assignee.avatar_url + '">' + pr.assignee.login + '</div>' : '') +
-            '<div class="col span_1_of_8 when">' + pr.time + '</div>' +
-            '</div>' +
-            (pr.body ?
-              '<div class="section group">' +
-                '<div class="col span_8_of_8 body">' + pr.body + '</div>' +
-                '</div>' : '') +
-            '<div class="section group">' +
-            '<div class="col span_2_of_8 to">' + pullTo + '</div><div class="col span_5_of_8">&lt;&lt;-- ' + pullFrom + '</div>' +
-
-            '</div>' +
-            '</div>');
-
-          out.append(div);
-
-          if (localConfig.ghprb && buildStatus == 'pending') {
-            $.ajax(localConfig.ghprb.jenkinsRoot + 'job/' + localConfig.ghprb.jobName + '/api/json', {
-              dataType: 'jsonp',
-              jsonp: 'jsonp',
-              data: {
-                tree: 'builds[number,url,actions[parameters[name,value]],timestamp,estimatedDuration,result,building]'
-              }
-            }).done(function(builder) {
-              for (var i = 0; i < builder.builds.length; i++) {
-                var build = builder.builds[i];
-                if (build.actions[0].parameters[2].value == pr.number) {
-                  var timeTaken = new Date().getTime() - build.timestamp;
-                  var timeLeft = build.estimatedDuration - timeTaken;
-                  var progressBarStyle = document.getElementById('prog_' + pr.number).style;
-                  if (build.building && timeLeft > 0) {
-                    progressBarStyle.width = (timeTaken / build.estimatedDuration * 100) + '%';
-                    animate(progressBarStyle, 'width', {to: 100, unit: '%', duration: timeLeft});
-                  }
-                  else {
-                    progressBarStyle.width = '100%';
-                  }
-                  return;
-                }
-              }
-            })
+                '</div>' +
+                '</div>');
+            return  div;
           }
-        });
+
+          arr.forEach(function(pr) {
+            pr.buildStatus =  pr.open ? pr.mergeable ? pr.build : 'merge-err' : '';
+
+            if (pr.show) {
+              out.append(formatPull(pr));
+            }
+
+            if (localConfig.ghprb && pr.buildStatus == 'pending') {
+              $.ajax(localConfig.ghprb.jenkinsRoot + 'job/' + localConfig.ghprb.jobName + '/api/json', {
+                dataType: 'jsonp',
+                jsonp: 'jsonp',
+                data: {
+                  tree: 'builds[number,url,actions[parameters[name,value]],timestamp,estimatedDuration,result,building]'
+                }
+              }).done(function (builder) {
+                    for (var i = 0; i < builder.builds.length; i++) {
+                      var build = builder.builds[i];
+                      if (build.actions[0].parameters[2].value == pr.number) {
+                        var timeTaken = new Date().getTime() - build.timestamp;
+                        var timeLeft = build.estimatedDuration - timeTaken;
+                        var progressBarStyle = document.getElementById('prog_' + pr.number).style;
+                        if (build.building && timeLeft > 0) {
+                          progressBarStyle.width = (timeTaken / build.estimatedDuration * 100) + '%';
+                          animate(progressBarStyle, 'width', {to: 100, unit: '%', duration: timeLeft});
+                        }
+                        else {
+                          progressBarStyle.width = '100%';
+                        }
+                        return;
+                      }
+                    }
+                  })
+            }
+          });
 
         document.documentElement.scrollTop = 9999;
         var bottom = document.documentElement.scrollTop;

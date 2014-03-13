@@ -9,5 +9,12 @@
     "jobName": "build-api-pull-requests"
   },
   "refreshConfig": 120000,
-  "version": 1
+  "version": 1,
+  "trustedUsers":["devmop",
+                  "edwardwe7",
+                  "brucegodden",
+                  "ArthurGibbs",
+                  "keithralphs"
+
+  ]
 }

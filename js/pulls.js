@@ -102,7 +102,7 @@ window.showPulls = (function() {
             return obj;
           }
 
-          return $.when(github(pullRequest.url), github(pullRequest.statuses_url), trustedUser(pullRequest) || github(pullRequest.comments_url))
+          return $.when(github(pullRequest.url), github(pullRequest.statuses_url), !!localConfig.showall || trustedUser(pullRequest) || github(pullRequest.comments_url))
             .then(function(detail, status, comments) {
               obj.mergeable = detail[0].mergeable != false ;
               obj.build = status[0].length ? status[0][0].state : '';

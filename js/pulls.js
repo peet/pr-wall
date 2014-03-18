@@ -69,7 +69,7 @@ window.showPulls = (function() {
     });
   }
 
-  function showPulls() {
+  function update() {
 
     var localConfig = config;
 
@@ -164,9 +164,11 @@ window.showPulls = (function() {
           return count < 6; //continue if we've done less than 6
         });
 
-        _.scrollDownUp();
+        _.scrollDownUp(5000, 5000, 5000).then(function() {
+          return _.wait(15000);
+        }).then(update);
       }, function() {
-        setTimeout(showPulls, 5000);
+        _.wait(5000).then(update);
       });
   }
 
@@ -177,7 +179,7 @@ window.showPulls = (function() {
 
   return function() {
     tim.dom({attr:"data-tim"});
-    updateConfig().then(showPulls);
+    updateConfig().then(update);
   };
 })();
 

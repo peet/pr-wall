@@ -64,6 +64,7 @@ window.showPulls = (function() {
       isClosed: !pr.open,
       isPending: pr.buildStatus == 'pending',
       isAssigned: !!pr.assignee,
+      isUntrusted: pr.open && !pr.trusted,
       hasBody: !!pr.body,
       pr: pr
     });
@@ -102,13 +103,13 @@ window.showPulls = (function() {
             return obj;
           }
 
-          return $.when(github(pullRequest.url), github(pullRequest.statuses_url), !!localConfig.showall || trustedUser(pullRequest) || github(pullRequest.comments_url))
+          return $.when(github(pullRequest.url), github(pullRequest.statuses_url), trustedUser(pullRequest) || github(pullRequest.comments_url))
             .then(function(detail, status, comments) {
               obj.mergeable = detail[0].mergeable != false ;
               obj.build = status[0].length ? status[0][0].state : '';
 
-              obj.show = comments === true || comments[0].some(function(comment){
-                return ~comment.body.indexOf("core review");
+              obj.trusted = comments === true || comments[0].some(function(comment) {
+                return ~comment.body.toLowerCase().indexOf("core review");
               });
               return obj;
             });
@@ -119,7 +120,7 @@ window.showPulls = (function() {
         var out = $('#out').empty();
 
         $('#mainTitle, title').text(config.title + ' Pull Requests [' + arr.reduce(function(val, pr) {
-          return val + +(pr.open && pr.show);
+          return val + pr.open;
         }, 0) + ']');
 
         var count = 0;
@@ -127,12 +128,10 @@ window.showPulls = (function() {
         arr.every(function(pr) {
           pr.buildStatus =  pr.open ? pr.mergeable ? pr.build : 'merge-err' : '';
 
-          if (!pr.open || pr.show) {
-            out.append(formatPull(pr));
-            count++;
-          }
+          out.append(formatPull(pr));
+          count++;
 
-          if (pr.show && localConfig.ghprb && pr.buildStatus == 'pending') {
+          if (pr.open && localConfig.ghprb && pr.buildStatus == 'pending') {
             $.ajax(localConfig.ghprb.jenkinsRoot + 'job/' + localConfig.ghprb.jobName + '/api/json', {
               dataType: 'jsonp',
               jsonp: 'jsonp',

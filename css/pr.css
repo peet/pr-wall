@@ -139,3 +139,7 @@ body {
 .hi-master {
   color: #8b0000;
 }
+
+.untrusted {
+  opacity: 0.5;
+}

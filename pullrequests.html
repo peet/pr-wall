@@ -15,7 +15,7 @@
 <script src="js/utils.js"></script>
 <script src="js/pulls.js"></script>
 <script type="text/tim" data-tim="pullrequest">
-<div class="section group row{{isClosed}} pr-closed{{/isClosed}}" data-pr="{{pr.number}}">
+<div class="section group row{{isClosed}} pr-closed{{/isClosed}}{{isUntrusted}} untrusted{{/isUntrusted}}" data-pr="{{pr.number}}">
   <div class="col span_1_of_8 block img-container">
     <img src="{{pr.avatar}}">
     <br>{{pr.user}}

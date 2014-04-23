@@ -4,7 +4,7 @@
 }
 
 body {
-  background: rgb(9, 44, 63);
+  background: #002855;
 }
 
 .col {
@@ -61,7 +61,7 @@ body {
 }
 
 .row {
-  background-color: rgba(255,255,255,0.2);
+  background-color: #1E3F63;
   border-radius: 10px;
   margin-bottom: 15px;
 }
@@ -98,24 +98,24 @@ body {
 }
 
 .success {
-  background-color: #326B1C;
+  background-color: #00A3E0;
 }
 
 .pending  .progress {
-  background-color: #9E8900;
+  background-color: #002855;
 }
 
 .failure {
-  background-color: #A30101;
+  background-color: #FF0080;
   border-color: #000000;
 }
 
 .error {
-  background-color: rgb(162, 0, 97);
+  background-color: #671E75;
 }
 
 .merge-err {
-  background-color:  #535353;
+  background-color:  #671E75;
 }
 
 .progress {

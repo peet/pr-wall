@@ -49,24 +49,8 @@ window.showPulls = (function() {
       data: $.extend({
         access_token: config.accessToken
       }, data)
-    })
-  }
-
-  function trustedUser(pullRequest) {
-    return $.inArray(pullRequest.user.login, config.trustedUsers) > -1;
-  }
-
-  function formatPull(pr) {
-    return tim('pullrequest', {
-      titleSpan: (pr.assignee ? 'span_5_of_8' : 'span_7_of_8') + ' ' + pr.buildStatus,
-      pullTo: hiliteBranch(pr.to),
-      pullFrom: hiliteBranch(pr.from),
-      isClosed: !pr.open,
-      isPending: pr.buildStatus == 'pending',
-      isAssigned: !!pr.assignee,
-      isUntrusted: pr.open && !pr.trusted,
-      hasBody: !!pr.body,
-      pr: pr
+    }).then(function(data) {
+      return data;
     });
   }
 
@@ -74,65 +58,119 @@ window.showPulls = (function() {
 
     var localConfig = config;
 
-    var pullsUrl = 'https://api.github.com/repos/' + localConfig.owner + '/' + localConfig.repo + '/pulls';
+    var repos = Object.keys(localConfig.repos);
 
-    $.when(github(pullsUrl), github(pullsUrl, {
-      base: localConfig.closedBranch,
-      state: 'closed'
-    }))
-      .then(function(openReq, closedReq) {
-        var all = openReq[0].concat(closedReq[0].slice(0, 6));
-        return $.when.apply($, all.map(function(pullRequest) {
-          var open = pullRequest.state == 'open';
+    var multiRepo = repos.length > 1;
 
-          var obj = {
-            number: pullRequest.number,
-            url: pullRequest.html_url,
+    var pullsUrl = function(repo) {
+      return 'https://api.github.com/repos/' + localConfig.owner + '/' + repo + '/pulls';
+    };
+
+    var requests = $.map(repos, function(repo) {
+      return [github(pullsUrl(repo)), github(pullsUrl(repo), {
+        base: localConfig.repos[repo].closedBranch || 'develop',
+        state: 'closed'
+      })]
+    });
+
+    $.when.apply($, requests)
+      .then(function() {
+        var all = $.makeArray(arguments)
+        .reduce(function(prev, curr) {
+          return prev.concat(curr);
+        }, [])
+        .map(function(pull) {
+          var open = pull.state === 'open';
+
+          return {
+            number: pull.number,
+            url: pull.html_url,
             open: open,
-            title: pullRequest.title,
-            body: pullRequest.body,
-            time: moment(pullRequest[(open ? 'created' : 'closed') + '_at']).fromNow(),
-            user: pullRequest.user.login,
-            avatar: pullRequest.user.avatar_url,
-            assignee: pullRequest.assignee,
-            from: pullRequest.head.label,
-            to: stripOwner(pullRequest.base.label, localConfig.owner)
+            title: pull.title,
+            body: pull.body,
+            time: moment(pull[(open ? 'created' : 'closed') + '_at']),
+            user: pull.user.login,
+            avatar: pull.user.avatar_url,
+            assignee: pull.assignee,
+            from: pull.head.label,
+            to: stripOwner(pull.base.label, localConfig.owner),
+            repo: pull.base.repo.name,
+            urls: {
+              detail: pull.url,
+              status: pull.statuses_url,
+              comments: pull.comments_url
+            }
           };
-
-          if (!open) {
-            return obj;
+        })
+        .sort(function(a, b) {
+          if (a.open && !b.open) { return -1 }
+          if (!a.open && b.open) { return 1 }
+          return a.time.isAfter(b.time) ? -1 : 1;
+        })
+        .reduce(function(arr, pull) {
+          return pull.open || arr.length < 6 ? arr.concat(pull) : arr;
+        }, [])
+        .map(function(pull) {
+          if (!pull.open) {
+            return pull;
           }
 
-          return $.when(github(pullRequest.url), github(pullRequest.statuses_url), trustedUser(pullRequest) || github(pullRequest.comments_url))
-            .then(function(detail, status, comments) {
-              obj.mergeable = !!detail[0].mergeable;
-              obj.build = status[0].length ? status[0][0].state : '';
+          var requests = [github(pull.urls.detail).then(function(detail) {
+            pull.mergeable = !!detail.mergeable;
+          }), github(pull.urls.status).then(function(status) {
+            pull.build = status.length ? status[0].state : '';
+          })];
 
-              obj.trusted = comments === true || comments[0].some(function(comment) {
-                return ~comment.body.toLowerCase().indexOf("core review");
+          if (localConfig.repos[pull.repo].trustComment
+            && $.isArray(localConfig.trustedUsers)
+            && localConfig.trustedUsers.length > 0
+            && !~localConfig.trustedUsers.indexOf(pull.user)) {
+            requests.push(github(pull.urls.comments).then(function(comments) {
+              pull.trusted = comments.some(function(comment) {
+                return ~comment.body.toLowerCase().indexOf(localConfig.repos[pull.repo].trustComment.toLowerCase());
               });
-              return obj;
-            });
-        }));
+            }))
+          }
+          else {
+            pull.trusted = true;
+          }
+
+          return $.when.apply($, requests).then(function() { return pull });
+        });
+
+        return $.when.apply($, all);
       }).then(function() {
         var arr = $.makeArray(arguments);
 
         var out = $('#out').empty();
 
-        $('#mainTitle, title').text(config.title + ' Pull Requests [' + arr.reduce(function(val, pr) {
-          return val + pr.open;
+        $('#mainTitle, title').text(config.title + ' Pull Requests [' + arr.reduce(function(val, pull) {
+          return val + pull.open;
         }, 0) + ']');
 
-        var count = 0;
+        function formatPull(pull) {
+          return tim('pullrequest', {
+            titleSpan: (pull.assignee ? 'span_5_of_8' : 'span_7_of_8') + ' ' + pull.buildStatus,
+            pullTo: hiliteBranch(pull.to),
+            pullFrom: hiliteBranch(pull.from),
+            isClosed: !pull.open,
+            isPending: pull.buildStatus == 'pending',
+            isAssigned: !!pull.assignee,
+            isUntrusted: pull.open && !pull.trusted,
+            hasBody: !!pull.body,
+            fromNow: pull.time.fromNow(),
+            multiRepo: Object.keys(localConfig.repos).length > 1,
+            pr: pull
+          });
+        }
 
-        arr.every(function(pr) {
-          pr.buildStatus =  pr.open ? pr.mergeable ? pr.build : 'merge-err' : '';
+        arr.forEach(function(pull) {
+          pull.buildStatus =  pull.open ? pull.mergeable ? pull.build : 'merge-err' : '';
 
-          out.append(formatPull(pr));
-          count++;
+          out.append(formatPull(pull));
 
-          if (pr.open && localConfig.ghprb && pr.buildStatus == 'pending') {
-            $.ajax(localConfig.ghprb.jenkinsRoot + 'job/' + localConfig.ghprb.jobName + '/api/json', {
+          if (pull.open && localConfig.jenkinsRoot && localConfig.repos[pull.repo].pullRequestJob && pull.buildStatus === 'pending') {
+            $.ajax(localConfig.jenkinsRoot + 'job/' + localConfig.repos[pull.repo].pullRequestJob + '/api/json', {
               dataType: 'jsonp',
               jsonp: 'jsonp',
               data: {
@@ -141,11 +179,11 @@ window.showPulls = (function() {
             }).done(function (builder) {
               var found = false;
               builder.builds.every(function(build) {
-                if (build.actions[0].parameters[2].value == pr.number) {
+                if (build.actions[0].parameters[2].value == pull.number) {
                   var timeTaken = new Date().getTime() - build.timestamp;
                   var timeLeft = build.estimatedDuration - timeTaken;
 
-                  var progressBarStyle = $('<div/>').addClass('progress').prependTo($('[data-pr="' + pr.number + '"] .title'))[0].style;
+                  var progressBarStyle = $('#prog_' + pull.number)[0].style;
                   if (build.building && timeLeft > 0) {
                     progressBarStyle.width = (timeTaken / build.estimatedDuration * 100) + '%';
                     _.animate(progressBarStyle, 'width', {to: 100, unit: '%', duration: timeLeft});
@@ -160,7 +198,6 @@ window.showPulls = (function() {
             })
           }
 
-          return count < 6; //continue if we've done less than 6
         });
 
         _.scrollDownUp(5000, 5000, 5000).then(function() {
@@ -177,7 +214,7 @@ window.showPulls = (function() {
   });
 
   return function() {
-    tim.dom({attr:"data-tim"});
+    tim.dom({attr:'data-tim'});
     updateConfig().then(update);
   };
 })();

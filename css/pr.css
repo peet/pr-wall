@@ -61,7 +61,7 @@ body {
 }
 
 .row {
-  background-color: #1E3F63;
+  background-color: #1F56B5;
   border-radius: 10px;
   margin-bottom: 15px;
 }
@@ -102,7 +102,7 @@ body {
 }
 
 .pending  .progress {
-  background-color: #002855;
+  background-color: #671E75;
 }
 
 .failure {

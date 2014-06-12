@@ -179,7 +179,11 @@ window.showPulls = (function() {
             }).done(function (builder) {
               var found = false;
               builder.builds.every(function(build) {
-                if (build.actions[0].parameters[2].value == pull.number) {
+                if (build.actions.some(function(action) {
+                  return action.parameters != null && action.parameters.length && action.parameters.some(function(param) {
+                    return param.name == 'ghprbPullId' && param.value == pull.number;
+                  });
+                })) {
                   var timeTaken = new Date().getTime() - build.timestamp;
                   var timeLeft = build.estimatedDuration - timeTaken;
 
@@ -218,4 +222,3 @@ window.showPulls = (function() {
     updateConfig().then(update);
   };
 })();
-

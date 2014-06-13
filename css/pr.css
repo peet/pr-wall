@@ -61,7 +61,7 @@ body {
 }
 
 .row {
-  background-color: #1F56B5;
+  background-color: rgba(255,255,255,0.2);
   border-radius: 10px;
   margin-bottom: 15px;
 }
@@ -102,20 +102,20 @@ body {
 }
 
 .pending  .progress {
-  background-color: #671E75;
+  background-color: #9E8900;
 }
 
 .failure {
-  background-color: #FF0080;
+  background-color: #A30101;
   border-color: #000000;
 }
 
 .error {
-  background-color: #671E75;
+  background-color: rgb(162, 0, 97);
 }
 
 .merge-err {
-  background-color:  #671E75;
+  background-color:  #535353;
 }
 
 .progress {

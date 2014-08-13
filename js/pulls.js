@@ -48,7 +48,8 @@ window.showPulls = (function() {
       dataType: 'json',
       data: $.extend({
         access_token: config.accessToken
-      }, data)
+      }, data),
+      cache: false
     }).then(function(data) {
       return data;
     });
@@ -88,7 +89,7 @@ window.showPulls = (function() {
             open: open,
             title: pull.title,
             body: pull.body,
-            time: moment(pull[(open ? 'created' : 'closed') + '_at']),
+            time: moment(pull[(open ? 'updated' : 'closed') + '_at']),
             user: pull.user.login,
             avatar: pull.user.avatar_url,
             assignee: pull.assignee,
@@ -175,7 +176,8 @@ window.showPulls = (function() {
               jsonp: 'jsonp',
               data: {
                 tree: 'builds[number,url,actions[parameters[name,value]],timestamp,estimatedDuration,result,building]'
-              }
+              },
+              cache: false
             }).done(function (builder) {
               var found = false;
               builder.builds.every(function(build) {

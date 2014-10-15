@@ -74,6 +74,11 @@ window.showPulls = (function() {
       })]
     });
 
+    //tim.js recurses replacements - escape {'s to prevent this
+    function escapeLBrace(str) {
+      return str ? str.replace(/\{/g, '&lbrace;') : str;
+    }
+
     $.when.apply($, requests)
       .then(function() {
         var all = $.makeArray(arguments)
@@ -87,8 +92,8 @@ window.showPulls = (function() {
             number: pull.number,
             url: pull.html_url,
             open: open,
-            title: pull.title,
-            body: pull.body,
+            title: escapeLBrace(pull.title),
+            body: escapeLBrace(pull.body),
             time: moment(pull[(open ? 'updated' : 'closed') + '_at']),
             user: pull.user.login,
             avatar: pull.user.avatar_url,

@@ -105,7 +105,7 @@ window.showPulls = (function() {
             repo: pull.base.repo.name,
             urls: {
               detail: pull.url,
-              status: pull.statuses_url,
+              status: pull.base.repo.commits_url.replace('{/sha}', '/' + pull.head.sha + '/status'),
               comments: pull.comments_url
             }
           };
@@ -126,7 +126,7 @@ window.showPulls = (function() {
           var requests = [github(pull.urls.detail).then(function(detail) {
             pull.mergeable = !!detail.mergeable;
           }), github(pull.urls.status).then(function(status) {
-            pull.build = status.length ? status[0].state : '';
+            pull.build = status.total_count || localConfig.repos[pull.repo].pullRequestJob ? status.state : 'success';
           })];
 
           if (localConfig.repos[pull.repo].trustComment
@@ -173,7 +173,7 @@ window.showPulls = (function() {
         }
 
         arr.forEach(function(pull) {
-          pull.buildStatus =  pull.open ? pull.mergeable ? pull.build : 'merge-err' : '';
+          pull.buildStatus = pull.open ? pull.mergeable ? pull.build : 'merge-err' : '';
 
           out.append(formatPull(pull));
 
@@ -208,6 +208,9 @@ window.showPulls = (function() {
                 }
                 return !found; //continue if not found
               });
+              if (!found) {
+                $('#prog_' + pull.number)[0].style.width = '100%';
+              }
             })
           }
 

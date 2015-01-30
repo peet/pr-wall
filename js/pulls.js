@@ -52,6 +52,8 @@ window.showPulls = (function() {
       cache: false
     }).then(function(data) {
       return data;
+    }, function() {
+      return $.Deferred().resolve([]);
     });
   }
 
